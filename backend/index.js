@@ -12,7 +12,7 @@ const serviceAccount = JSON.parse(
 // Initialize Firebase Admin SDK with your service account credentials
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://your-project-id.firebaseio.com"  // Replace with your actual Firebase project URL
+   // Replace with your actual Firebase project URL
 });
 
 // Connect to the MQTT broker
@@ -41,6 +41,7 @@ client.on('error', (err) => {
 
 client.on('message', async (topic, message) => {
   try {
+    console.log(`Message received on topic ${topic}:`, message.toString());
     const sensorData = JSON.parse(message.toString());
     console.log('Received sensor data:', sensorData);
 
