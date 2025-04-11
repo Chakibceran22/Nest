@@ -1,6 +1,5 @@
 import { useState } from "react"
 import { Sidebar } from "./components/SideBar"
-import { TopBar } from "./components/TopBar"
 import { Dashboard } from "./components/Dashboard"
 import { Schedule } from "./components/Scheduel"
 import { Sensors } from "./components/Sensor"
@@ -28,7 +27,6 @@ function App() {
         toggleDarkMode={toggleDarkMode}
       />
       <div className="main-content">
-        <TopBar setCurrentPage={setCurrentPage} />
         <main className="page-content">
           {currentPage === "home" && <Dashboard />}
           {currentPage === "cooling" && <Cooling />}
