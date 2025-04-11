@@ -1,53 +1,124 @@
-#include <mosquitto.h>
-#include <iostream>
+#include <WiFi.h>
+#include <PubSubClient.h>
+#include <DHT.h>
 
-void on_connect(struct mosquitto *mosq, void *obj, int rc) {
-    if (rc == 0) {
-        std::cout << "Connected successfully!" << std::endl;
-        mosquitto_subscribe(mosq, NULL, "test/topic", 0);
+// WiFi credentials - Replace with your mobile hotspot details
+const char* ssid = "YourMobileHotspotName";
+const char* password = "YourMobileHotspotPassword";
+
+// MQTT Broker settings - Matching your Node.js config
+const char* mqtt_server = "192.168.137.157"; // Your Windows computer's WiFi IP address
+const int mqtt_port = 1883;          // Matches your MQTT_PORT
+const char* mqtt_topic = "sensor/data"; // Matches your MQTT_TOPIC
+
+// DHT sensor setup
+#define DHTPIN 4       // Digital pin connected to the DHT sensor
+#define DHTTYPE DHT22  // DHT 22 (AM2302) - Change to DHT11 if using that sensor
+
+// Initialize WiFi client, MQTT client, and DHT sensor
+WiFiClient espClient;
+PubSubClient client(espClient);
+DHT dht(DHTPIN, DHTTYPE);
+
+// Variables for publishing interval
+unsigned long lastMsg = 0;
+const long interval = 10000; // Publish every 10 seconds
+
+void setup_wifi() {
+  delay(10);
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+void reconnect() {
+  // Loop until we're reconnected
+  while (!client.connected()) {
+    Serial.print("Attempting MQTT connection...");
+    
+    // Create a random client ID
+    String clientId = "ESP32Client-";
+    clientId += String(random(0xffff), HEX);
+    
+    // Attempt to connect (no username/password as per your setup)
+    if (client.connect(clientId.c_str())) {
+      Serial.println("connected");
     } else {
-        std::cout << "Connection failed with code " << rc << std::endl;
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      delay(5000);
     }
+  }
 }
 
-void on_message(struct mosquitto *mosq, void *obj, const struct mosquitto_message *message) {
-    std::cout << "Received message: " << (char*)message->payload << " on topic " << message->topic << std::endl;
+void setup() {
+  Serial.begin(115200);
+  
+  // Initialize the DHT sensor
+  dht.begin();
+  
+  // Setup WiFi connection
+  setup_wifi();
+  
+  // Configure MQTT connection
+  client.setServer(mqtt_server, mqtt_port);
+  
+  randomSeed(micros());
 }
 
-int main() {
-    // Initialize the Mosquitto library
-    mosquitto_lib_init();
+void loop() {
+  // Ensure MQTT connection is maintained
+  if (!client.connected()) {
+    reconnect();
+  }
+  client.loop();
 
-    // Create a new Mosquitto client instance
-    struct mosquitto *mosq = mosquitto_new(NULL, true, NULL);
-    if (!mosq) {
-        std::cerr << "Failed to create Mosquitto instance!" << std::endl;
-        return 1;
+  // Check if it's time to publish a new reading
+  unsigned long now = millis();
+  if (now - lastMsg > interval) {
+    lastMsg = now;
+    
+    // Read temperature and humidity from DHT sensor
+    float humidity = dht.readHumidity();
+    float temperature = dht.readTemperature(); // Read temperature in Celsius
+    
+    // Check if reading was successful
+    if (isnan(humidity) || isnan(temperature)) {
+      Serial.println("Failed to read from DHT sensor!");
+      return;
     }
-
-    // Set up callback functions
-    mosquitto_connect_callback_set(mosq, on_connect);
-    mosquitto_message_callback_set(mosq, on_message);
-
-    // Connect to the MQTT broker (e.g., Eclipse MQTT Broker)
-    int ret = mosquitto_connect(mosq, "mqtt.eclipse.org", 1883, 60); // Broker: mqtt.eclipse.org, Port: 1883
-    if (ret != MOSQ_ERR_SUCCESS) {
-        std::cerr << "Failed to connect to broker!" << std::endl;
-        mosquitto_destroy(mosq);
-        return 1;
-    }
-
-    // Start the message loop
-    mosquitto_loop_start(mosq);
-
-    // Keep the program running to listen for incoming messages
-    std::cout << "Press Enter to exit." << std::endl;
-    std::cin.get();
-
-    // Clean up
-    mosquitto_loop_stop(mosq, true);
-    mosquitto_destroy(mosq);
-    mosquitto_lib_cleanup();
-
-    return 0;
+    
+    // Print sensor values to serial monitor
+    Serial.print("Temperature: ");
+    Serial.print(temperature);
+    Serial.print(" °C, Humidity: ");
+    Serial.print(humidity);
+    Serial.println(" %");
+    
+    // Create JSON string with the data
+    char msg[100];
+    snprintf(msg, 100, "{\"temperature\":%.2f,\"humidity\":%.2f}", temperature, humidity);
+    
+    Serial.print("Publishing message: ");
+    Serial.println(msg);
+    
+    // Publish to the MQTT topic
+    client.publish(mqtt_topic, msg);
+  }
+  
+  // Brief delay to prevent overwhelming the loop
+  delay(100);
 }

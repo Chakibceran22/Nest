@@ -1,6 +1,8 @@
 // index.js
 import mqtt from 'mqtt';
 import admin from 'firebase-admin';
+import express from 'express';
+import cors from 'cors';
 import { readFile } from 'fs/promises';
 import { MQTT_HOST, MQTT_PORT, MQTT_TOPIC } from './config.js';
 
@@ -15,7 +17,7 @@ admin.initializeApp({
    // Replace with your actual Firebase project URL
 });
 
-// Connect to the MQTT broker
+// Connect to the MQTT broker 
 const client = mqtt.connect(`mqtt://${MQTT_HOST}:${MQTT_PORT}`, {
   clientId: `firebase-bridge-${Math.random().toString(16).substring(2, 8)}`,
   clean: true,
