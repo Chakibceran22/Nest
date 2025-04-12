@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from "react"
-import { 
+import {
   Camera, Wind, Thermometer, Power, Video, Square, Lock, AlignLeft, Sun, Moon,
-  Droplet, Bell, AlertTriangle, Layers, BarChart2, Sliders, Save, RotateCw, Eye, 
-  Check, X , Plus
+  Droplet, Bell, AlertTriangle, Layers, BarChart2, Sliders, Save, RotateCw, Eye,
+  Check, X, Plus,Zap
 } from "lucide-react"
 import axios from "axios"
 
-export  function Controllers() {
+export function Controllers() {
   // Basic system controls
   const [grouper, setGrouper] = useState(false)
   const [surveillance, setSurveillance] = useState(true)
@@ -14,12 +14,12 @@ export  function Controllers() {
   const [emergencyMode, setEmergencyMode] = useState(false)
   const [lightsOn, setLightsOn] = useState(true)
   const [nightMode, setNightMode] = useState(false)
-  
+
   // Environment controls
   const [temperature, setTemperature] = useState(22)
   const [fanSpeed, setFanSpeed] = useState(50)
   const [humidity, setHumidity] = useState(45)
-  
+
   // Camera controls
   const [streamActive, setStreamActive] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
@@ -27,14 +27,16 @@ export  function Controllers() {
   const [cameraSelector, setCameraSelector] = useState('user')
   const [notifications, setNotifications] = useState(true)
   const [motionDetection, setMotionDetection] = useState(true)
-  
+  const [solarMode, setSolarMode] = useState(false)
+
+
   // Automation schedules
   const [schedules, setSchedules] = useState([
     { id: 1, name: "Morning Temperature", action: "Set temperature to 23°C", time: "08:00", days: "Mon-Fri", active: true },
     { id: 2, name: "Evening Lights", action: "Turn on all lights", time: "18:00", days: "Daily", active: true },
     { id: 3, name: "Night Security", action: "Activate security system", time: "22:00", days: "Daily", active: true },
   ])
-  
+
   // Status and logs
   const [systemStatus, setSystemStatus] = useState("Normal")
   const [logs, setLogs] = useState([
@@ -42,12 +44,12 @@ export  function Controllers() {
     { time: "09:15:21", message: "Security system activated", type: "success" },
     { time: "08:30:10", message: "Grouper control deactivated", type: "warning" },
   ])
-  
+
   // Camera refs
   const videoRef = useRef(null)
   const mediaRecorderRef = useRef(null)
   const streamRef = useRef(null)
-  
+
   // Show alert when emergency mode is activated
   useEffect(() => {
     if (emergencyMode) {
@@ -58,7 +60,7 @@ export  function Controllers() {
         type: "emergency"
       }
       setLogs([newLog, ...logs])
-      
+
       // Set system status
       setSystemStatus("Emergency")
     } else {
@@ -74,9 +76,9 @@ export  function Controllers() {
         const tracks = streamRef.current.getTracks();
         tracks.forEach(track => track.stop());
       }
-      
+
       // Request camera access with constraints for better compatibility
-      const stream = await navigator.mediaDevices.getUserMedia({ 
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           width: { ideal: 1280 },
           height: { ideal: 720 },
@@ -84,17 +86,17 @@ export  function Controllers() {
         },
         audio: false
       });
-      
+
       streamRef.current = stream;
-      
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        
+
         // Wait for video to be ready
         videoRef.current.onloadedmetadata = () => {
           videoRef.current.play().then(() => {
             setStreamActive(true);
-            
+
             // Add log entry
             const newLog = {
               time: new Date().toLocaleTimeString(),
@@ -109,7 +111,7 @@ export  function Controllers() {
       }
     } catch (err) {
       console.error("Error accessing webcam:", err);
-      
+
       // Add log entry
       const newLog = {
         time: new Date().toLocaleTimeString(),
@@ -117,7 +119,7 @@ export  function Controllers() {
         type: "error"
       }
       setLogs([newLog, ...logs])
-      
+
       alert("Could not access webcam. Please check permissions.");
       setSurveillance(false);
     }
@@ -128,19 +130,19 @@ export  function Controllers() {
     if (isRecording) {
       stopRecording();
     }
-    
+
     if (streamRef.current) {
       const tracks = streamRef.current.getTracks();
       tracks.forEach(track => track.stop());
       streamRef.current = null;
     }
-    
+
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
-    
+
     setStreamActive(false);
-    
+
     // Add log entry
     const newLog = {
       time: new Date().toLocaleTimeString(),
@@ -153,24 +155,24 @@ export  function Controllers() {
   // Start recording function
   const startRecording = () => {
     if (!streamRef.current) return;
-    
+
     setRecordedChunks([]);
     try {
       const mediaRecorder = new MediaRecorder(streamRef.current, {
         mimeType: 'video/webm;codecs=vp9,opus'
       });
-      
+
       mediaRecorderRef.current = mediaRecorder;
-      
+
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           setRecordedChunks(prev => [...prev, event.data]);
         }
       };
-      
+
       mediaRecorder.start(1000); // Collect data every second
       setIsRecording(true);
-      
+
       // Add log entry
       const newLog = {
         time: new Date().toLocaleTimeString(),
@@ -180,7 +182,7 @@ export  function Controllers() {
       setLogs([newLog, ...logs])
     } catch (err) {
       console.error("Error starting recording:", err);
-      
+
       // Add log entry
       const newLog = {
         time: new Date().toLocaleTimeString(),
@@ -188,7 +190,7 @@ export  function Controllers() {
         type: "error"
       }
       setLogs([newLog, ...logs])
-      
+
       alert("Could not start recording. Your browser may not support this feature.");
     }
   };
@@ -198,7 +200,7 @@ export  function Controllers() {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-      
+
       // Add log entry
       const newLog = {
         time: new Date().toLocaleTimeString(),
@@ -215,21 +217,21 @@ export  function Controllers() {
       alert("No recording available to save");
       return;
     }
-    
+
     const blob = new Blob(recordedChunks, { type: 'video/webm' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    
+
     document.body.appendChild(a);
     a.style = 'display: none';
     a.href = url;
     a.download = `surveillance-recording-${new Date().toISOString()}.webm`;
     a.click();
-    
+
     // Cleanup
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
-    
+
     // Add log entry
     const newLog = {
       time: new Date().toLocaleTimeString(),
@@ -246,7 +248,7 @@ export  function Controllers() {
     } else {
       stopWebcam();
     }
-    
+
     // Cleanup on component unmount
     return () => {
       stopWebcam();
@@ -269,11 +271,11 @@ export  function Controllers() {
       }
     }
   }
-  
+
   // Update controller and add log entry
   const handleControlChange = async (controlName, value, controlType = "toggle") => {
     // Update the control state based on the controlName
-    switch(controlName) {
+    switch (controlName) {
       case "grouper":
         setGrouper(value);
         break;
@@ -303,17 +305,20 @@ export  function Controllers() {
       case "fanSpeed":
         setFanSpeed(value);
         break;
-      
+
       case "notifications":
         setNotifications(value);
         break;
       case "motionDetection":
         setMotionDetection(value);
         break;
+      case "solarMode":
+        setSolarMode(value);
+        break;
       default:
         break;
     }
-    
+
     // Create log message based on control type
     let logMessage = "";
     if (controlType === "toggle") {
@@ -321,10 +326,10 @@ export  function Controllers() {
     } else if (controlType === "slider") {
       logMessage = `${controlName} set to ${value}${controlName === "temperature" ? "°C" : "%"}`;
     }
-    
+
     // Capitalize first letter of control name for log
     const formattedControlName = controlName.charAt(0).toUpperCase() + controlName.slice(1);
-    
+
     // Add log entry
     const newLog = {
       time: new Date().toLocaleTimeString(),
@@ -333,16 +338,16 @@ export  function Controllers() {
     }
     setLogs([newLog, ...logs.slice(0, 49)]) // Keep only the latest 50 logs
   }
-  
+
   // Toggle schedule status
   const toggleSchedule = (id) => {
-    setSchedules(schedules.map(schedule => 
-      schedule.id === id ? {...schedule, active: !schedule.active} : schedule
+    setSchedules(schedules.map(schedule =>
+      schedule.id === id ? { ...schedule, active: !schedule.active } : schedule
     ))
-    
+
     // Find the schedule
     const schedule = schedules.find(s => s.id === id);
-    
+
     // Add log entry
     if (schedule) {
       const newLog = {
@@ -353,7 +358,7 @@ export  function Controllers() {
       setLogs([newLog, ...logs])
     }
   }
-  
+
   // Function to clear all logs
   const clearLogs = () => {
     setLogs([{
@@ -389,10 +394,10 @@ export  function Controllers() {
           <div className="card-content controller-toggle">
             <span className="toggle-label">{grouper ? "Activated" : "Deactivated"}</span>
             <label className="switch">
-              <input 
-                type="checkbox" 
-                checked={grouper} 
-                onChange={() => handleControlChange("grouper", !grouper)} 
+              <input
+                type="checkbox"
+                checked={grouper}
+                onChange={() => handleControlChange("grouper", !grouper)}
               />
               <span className="slider round"></span>
             </label>
@@ -408,16 +413,16 @@ export  function Controllers() {
           <div className="card-content controller-toggle">
             <span className="toggle-label">{surveillance ? "Active" : "Inactive"}</span>
             <label className="switch">
-              <input 
-                type="checkbox" 
-                checked={surveillance} 
-                onChange={() => handleControlChange("surveillance", !surveillance)} 
+              <input
+                type="checkbox"
+                checked={surveillance}
+                onChange={() => handleControlChange("surveillance", !surveillance)}
               />
               <span className="slider round"></span>
             </label>
           </div>
         </div>
-        
+
         <div className="card">
           <div className="card-header">
             <h3 className="card-title">
@@ -427,16 +432,16 @@ export  function Controllers() {
           <div className="card-content controller-toggle">
             <span className="toggle-label">{securitySystem ? "Armed" : "Disarmed"}</span>
             <label className="switch">
-              <input 
-                type="checkbox" 
-                checked={securitySystem} 
-                onChange={() => handleControlChange("security", !securitySystem)} 
+              <input
+                type="checkbox"
+                checked={securitySystem}
+                onChange={() => handleControlChange("security", !securitySystem)}
               />
               <span className="slider round"></span>
             </label>
           </div>
         </div>
-        
+
         <div className="card">
           <div className="card-header">
             <h3 className="card-title">
@@ -446,16 +451,16 @@ export  function Controllers() {
           <div className="card-content controller-toggle">
             <span className="toggle-label emergency-label">{emergencyMode ? "ACTIVATED" : "Deactivated"}</span>
             <label className="switch emergency-switch">
-              <input 
-                type="checkbox" 
-                checked={emergencyMode} 
-                onChange={() => handleControlChange("emergency", !emergencyMode)} 
+              <input
+                type="checkbox"
+                checked={emergencyMode}
+                onChange={() => handleControlChange("emergency", !emergencyMode)}
               />
               <span className="slider round"></span>
             </label>
           </div>
         </div>
-        
+
         <div className="card">
           <div className="card-header">
             <h3 className="card-title">
@@ -465,29 +470,29 @@ export  function Controllers() {
           <div className="card-content controller-toggle">
             <span className="toggle-label">{lightsOn ? "Lights On" : "Lights Off"}</span>
             <label className="switch">
-              <input 
-                type="checkbox" 
-                checked={lightsOn} 
-                onChange={() => handleControlChange("lights", !lightsOn)} 
+              <input
+                type="checkbox"
+                checked={lightsOn}
+                onChange={() => handleControlChange("lights", !lightsOn)}
               />
               <span className="slider round"></span>
             </label>
           </div>
         </div>
-        
+
         <div className="card">
           <div className="card-header">
             <h3 className="card-title">
-              <Moon className="card-icon" /> Night Mode
+              <Zap className="card-icon" /> Power Source
             </h3>
           </div>
           <div className="card-content controller-toggle">
-            <span className="toggle-label">{nightMode ? "Enabled" : "Disabled"}</span>
+            <span className="toggle-label">{solarMode ? "Solar Power" : "Grid Power"}</span>
             <label className="switch">
-              <input 
-                type="checkbox" 
-                checked={nightMode} 
-                onChange={() => handleControlChange("nightMode", !nightMode)} 
+              <input
+                type="checkbox"
+                checked={solarMode}
+                onChange={() => handleControlChange("solarMode", !solarMode)}
               />
               <span className="slider round"></span>
             </label>
@@ -517,19 +522,19 @@ export  function Controllers() {
               />
             </div>
             <div className="temperature-presets">
-              <button 
+              <button
                 className="preset-btn cool"
                 onClick={() => handleControlChange("temperature", 20, "slider")}
               >
                 Cool (20°C)
               </button>
-              <button 
+              <button
                 className="preset-btn comfort"
                 onClick={() => handleControlChange("temperature", 23, "slider")}
               >
                 Comfort (23°C)
               </button>
-              <button 
+              <button
                 className="preset-btn warm"
                 onClick={() => handleControlChange("temperature", 26, "slider")}
               >
@@ -562,25 +567,25 @@ export  function Controllers() {
               />
             </div>
             <div className="fan-presets">
-              <button 
+              <button
                 className="preset-btn"
                 onClick={() => handleControlChange("fanSpeed", 0, "slider")}
               >
                 Off
               </button>
-              <button 
+              <button
                 className="preset-btn"
                 onClick={() => handleControlChange("fanSpeed", 25, "slider")}
               >
                 Low
               </button>
-              <button 
+              <button
                 className="preset-btn"
                 onClick={() => handleControlChange("fanSpeed", 50, "slider")}
               >
                 Medium
               </button>
-              <button 
+              <button
                 className="preset-btn"
                 onClick={() => handleControlChange("fanSpeed", 100, "slider")}
               >
@@ -589,16 +594,16 @@ export  function Controllers() {
             </div>
           </div>
         </div>
-        
-       
+
+
       </div>
-      
+
       {/* Camera Feed Section */}
       <div className="card camera-card">
         <div className="card-header">
           <h3 className="card-title">Camera Feed</h3>
           <div className="camera-controls">
-            <select 
+            <select
               className="camera-selector"
               value={cameraSelector}
               onChange={(e) => setCameraSelector(e.target.value)}
@@ -607,7 +612,7 @@ export  function Controllers() {
               <option value="user">Front Camera</option>
               <option value="environment">Rear Camera</option>
             </select>
-            
+
             {surveillance && streamActive && (
               <div className="recording-indicator">
                 {isRecording ? (
@@ -617,8 +622,8 @@ export  function Controllers() {
                   </span>
                 ) : (
                   recordedChunks.length > 0 && (
-                    <button 
-                      className="btn btn-sm btn-success" 
+                    <button
+                      className="btn btn-sm btn-success"
                       onClick={saveRecording}
                     >
                       <Save size={14} /> Save Recording
@@ -633,9 +638,9 @@ export  function Controllers() {
           {surveillance ? (
             <>
               <div className="camera-feed">
-                <video 
-                  ref={videoRef} 
-                  autoPlay 
+                <video
+                  ref={videoRef}
+                  autoPlay
                   playsInline
                   muted
                 />
@@ -645,29 +650,29 @@ export  function Controllers() {
                     <p>Connecting to camera...</p>
                   </div>
                 )}
-                
+
                 {/* Camera settings overlay */}
-                
+
               </div>
               <div className="camera-actions">
                 {isRecording ? (
-                  <button 
-                    className="btn btn-danger" 
+                  <button
+                    className="btn btn-danger"
                     onClick={stopRecording}
                   >
                     <Square size={16} className="btn-icon" /> Stop Recording
                   </button>
                 ) : (
-                  <button 
-                    className="btn btn-secondary" 
+                  <button
+                    className="btn btn-secondary"
                     onClick={startRecording}
                     disabled={!streamActive}
                   >
                     <Video size={16} className="btn-icon" /> Record Video
                   </button>
                 )}
-                <button 
-                  className="btn btn-primary" 
+                <button
+                  className="btn btn-primary"
                   onClick={viewFullScreen}
                   disabled={!streamActive}
                 >
@@ -693,9 +698,9 @@ export  function Controllers() {
           )}
         </div>
       </div>
-      
-      
-      
+
+
+
       {/* System Logs */}
       <div className="card logs-card">
         <div className="card-header">

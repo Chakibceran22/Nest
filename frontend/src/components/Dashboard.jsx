@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
 import { Thermometer, Droplet, Wind, MapPin, Calendar, AlertTriangle, ArrowUp, ArrowDown } from "lucide-react"
 
-export  function Dashboard() {
+export function Dashboard() {
   const [currentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [showCalendar, setShowCalendar] = useState(false)
@@ -18,15 +18,15 @@ export  function Dashboard() {
     { name: "23:59", consumption: 34, production: 43 },
   ]
   
-  // Sample data for weekly energy consumption
+  // Modified weekly energy data with energy source breakdown for Algerie Telecom Mobile (Mobilis) ATM site
   const weeklyEnergyData = [
-    { day: "Mon", consumption: 210, average: 180 },
-    { day: "Tue", consumption: 180, average: 180 },
-    { day: "Wed", consumption: 200, average: 180 },
-    { day: "Thu", consumption: 190, average: 180 },
-    { day: "Fri", consumption: 240, average: 180 },
-    { day: "Sat", consumption: 150, average: 180 },
-    { day: "Sun", consumption: 160, average: 180 },
+    { day: "Mon", consumption: 210, grid: 80, solar: 100, grouper: 30, average: 180 },
+    { day: "Tue", consumption: 180, grid: 90, solar: 70, grouper: 20, average: 180 },
+    { day: "Wed", consumption: 200, grid: 70, solar: 110, grouper: 20, average: 180 },
+    { day: "Thu", consumption: 190, grid: 60, solar: 100, grouper: 30, average: 180 },
+    { day: "Fri", consumption: 240, grid: 100, solar: 90, grouper: 50, average: 180 },
+    { day: "Sat", consumption: 150, grid: 40, solar: 80, grouper: 30, average: 180 },
+    { day: "Sun", consumption: 160, grid: 50, solar: 90, grouper: 20, average: 180 },
   ]
   
   // Sample data for monthly overview
@@ -62,6 +62,21 @@ export  function Dashboard() {
     
     return () => clearInterval(interval)
   }, [])
+  
+  // Calculate energy source percentages for the site
+  const energySources = {
+    grid: weeklyEnergyData.reduce((sum, day) => sum + day.grid, 0),
+    solar: weeklyEnergyData.reduce((sum, day) => sum + day.solar, 0),
+    grouper: weeklyEnergyData.reduce((sum, day) => sum + day.grouper, 0),
+  }
+  
+  const totalEnergy = energySources.grid + energySources.solar + energySources.grouper
+  
+  const energySourcePercentages = {
+    grid: Math.round((energySources.grid / totalEnergy) * 100),
+    solar: Math.round((energySources.solar / totalEnergy) * 100),
+    grouper: Math.round((energySources.grouper / totalEnergy) * 100),
+  }
   
   // Generate calendar days for current month
   const generateCalendarDays = () => {
@@ -131,11 +146,14 @@ export  function Dashboard() {
 
           <div className="card">
             <div className="card-header">
-              <h3 className="card-title">Weekly Average</h3>
+              <h3 className="card-title">Active Power Source</h3>
             </div>
             <div className="card-content">
-              <div className="stat-value">1.8 kWh/day</div>
-              <p className="stat-info">This week's average consumption</p>
+              <div className="active-power-source">
+                <div className="power-source-indicator solar"></div>
+                <div className="power-source-name">Solar</div>
+              </div>
+              <p className="stat-info">Currently powering the site</p>
             </div>
           </div>
 
@@ -176,22 +194,124 @@ export  function Dashboard() {
           </div>
         </div>
         
+        {/* Power Source Type Dashboard */}
         <div className="card chart-card">
           <div className="card-header">
-            <h3 className="card-title">Weekly Consumption</h3>
+            <h3 className="card-title">Power Source Type</h3>
+            <div className="site-info">Algerie Telecom Mobile (Mobilis) ATM Site</div>
           </div>
-          <div className="card-content chart-container">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={weeklyEnergyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="consumption" fill="#8884d8" name="Daily Consumption (kWh)" />
-                <Bar dataKey="average" fill="#82ca9d" name="Weekly Average (kWh)" />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="power-sources-container">
+            <div className="power-source-card grid">
+              <div className="power-source-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 16.36v-1.36a6 6 0 1 0-12 0v1.36"></path>
+                  <path d="M18 20a2 2 0 0 0 1-3.73V8a7 7 0 0 0-14 0v8.27A2 2 0 0 0 6 20"></path>
+                  <path d="M12 12v8"></path>
+                </svg>
+              </div>
+              <div className="power-source-info">
+                <h4>Grid Power</h4>
+                <div className="power-source-metrics">
+                  <div className="metric">
+                    <span className="metric-value">{energySourcePercentages.grid}%</span>
+                    <span className="metric-label">Current Usage</span>
+                  </div>
+                  <div className="metric">
+                    <span className="metric-value">95%</span>
+                    <span className="metric-label">Availability</span>
+                  </div>
+                </div>
+                <div className="power-source-status">
+                  <div className="status-indicator online"></div>
+                  <span>Online</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="power-source-card solar">
+              <div className="power-source-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="5"></circle>
+                  <line x1="12" y1="1" x2="12" y2="3"></line>
+                  <line x1="12" y1="21" x2="12" y2="23"></line>
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                  <line x1="1" y1="12" x2="3" y2="12"></line>
+                  <line x1="21" y1="12" x2="23" y2="12"></line>
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+              </div>
+              <div className="power-source-info">
+                <h4>Solar Power</h4>
+                <div className="power-source-metrics">
+                  <div className="metric">
+                    <span className="metric-value">{energySourcePercentages.solar}%</span>
+                    <span className="metric-label">Current Usage</span>
+                  </div>
+                  <div className="metric">
+                    <span className="metric-value">68%</span>
+                    <span className="metric-label">Efficiency</span>
+                  </div>
+                </div>
+                <div className="power-source-status">
+                  <div className="status-indicator online"></div>
+                  <span>Active - Generating</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="power-source-card grouper">
+              <div className="power-source-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                </svg>
+              </div>
+              <div className="power-source-info">
+                <h4>Grouper Power</h4>
+                <div className="power-source-metrics">
+                  <div className="metric">
+                    <span className="metric-value">{energySourcePercentages.grouper}%</span>
+                    <span className="metric-label">Current Usage</span>
+                  </div>
+                  <div className="metric">
+                    <span className="metric-value">75%</span>
+                    <span className="metric-label">Fuel Level</span>
+                  </div>
+                </div>
+                <div className="power-source-status">
+                  <div className="status-indicator standby"></div>
+                  <span>Standby Mode</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="energy-source-summary">
+            <h4>Current Energy Distribution</h4>
+            <div className="energy-source-bars">
+              <div className="energy-source-item">
+                <div className="source-label">Grid</div>
+                <div className="source-bar-container">
+                  <div className="source-bar grid" style={{ width: `${energySourcePercentages.grid}%` }}></div>
+                </div>
+                <div className="source-percentage">{energySourcePercentages.grid}%</div>
+              </div>
+              <div className="energy-source-item">
+                <div className="source-label">Solar</div>
+                <div className="source-bar-container">
+                  <div className="source-bar solar" style={{ width: `${energySourcePercentages.solar}%` }}></div>
+                </div>
+                <div className="source-percentage">{energySourcePercentages.solar}%</div>
+              </div>
+              <div className="energy-source-item">
+                <div className="source-label">Grouper</div>
+                <div className="source-bar-container">
+                  <div className="source-bar grouper" style={{ width: `${energySourcePercentages.grouper}%` }}></div>
+                </div>
+                <div className="source-percentage">{energySourcePercentages.grouper}%</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -204,8 +324,8 @@ export  function Dashboard() {
             </h3>
           </div>
           <div className="card-content">
-            <p className="location-name">Building A, Floor 3</p>
-            <p className="location-address">123 Main Street, City</p>
+            <p className="location-name">Mobilis ATM Site</p>
+            <p className="location-address">Algerie Telecom Mobile</p>
             <div className="date-display">
               <Calendar className="card-icon" />
               <div>
@@ -367,6 +487,218 @@ export  function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* CSS styles for the new energy source elements */}
+      <style jsx>{`
+        .site-info {
+          font-size: 0.85rem;
+          color: #6B7280;
+          margin-top: 2px;
+        }
+        
+        .energy-source-summary {
+          padding: 1rem;
+          border-top: 1px solid #E5E7EB;
+        }
+        
+        .energy-source-summary h4 {
+          font-size: 0.9rem;
+          font-weight: 600;
+          margin-bottom: 0.75rem;
+        }
+        
+        .energy-source-bars {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+        
+        .energy-source-item {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        
+        .source-label {
+          width: 55px;
+          font-size: 0.85rem;
+        }
+        
+        .source-bar-container {
+          flex: 1;
+          height: 10px;
+          background-color: #E5E7EB;
+          border-radius: 5px;
+          overflow: hidden;
+        }
+        
+        .source-bar {
+          height: 100%;
+          border-radius: 5px;
+        }
+        
+        .source-bar.grid {
+          background-color: #F87171;
+        }
+        
+        .source-bar.solar {
+          background-color: #34D399;
+        }
+        
+        .source-bar.grouper {
+          background-color: #60A5FA;
+        }
+        
+        .source-percentage {
+          width: 35px;
+          font-size: 0.85rem;
+          text-align: right;
+        }
+        
+        /* Active Power Source */
+        .active-power-source {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          margin-bottom: 0.25rem;
+        }
+        
+        .power-source-indicator {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+        }
+        
+        .power-source-indicator.grid {
+          background-color: #F87171;
+          box-shadow: 0 0 8px rgba(248, 113, 113, 0.6);
+        }
+        
+        .power-source-indicator.solar {
+          background-color: #34D399;
+          box-shadow: 0 0 8px rgba(52, 211, 153, 0.6);
+        }
+        
+        .power-source-indicator.grouper {
+          background-color: #60A5FA;
+          box-shadow: 0 0 8px rgba(96, 165, 250, 0.6);
+        }
+        
+        .power-source-name {
+          font-size: 1.5rem;
+          font-weight: 600;
+        }
+        
+        /* Power Source Cards */
+        .power-sources-container {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          padding: 1rem;
+        }
+        
+        .power-source-card {
+          display: flex;
+          padding: 1rem;
+          border-radius: 0.5rem;
+          background-color: #F9FAFB;
+          border: 1px solid #E5E7EB;
+        }
+        
+        .power-source-card.grid {
+          border-left: 4px solid #F87171;
+        }
+        
+        .power-source-card.solar {
+          border-left: 4px solid #34D399;
+        }
+        
+        .power-source-card.grouper {
+          border-left: 4px solid #60A5FA;
+        }
+        
+        .power-source-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 48px;
+          height: 48px;
+          border-radius: 0.5rem;
+          margin-right: 1rem;
+        }
+        
+        .power-source-card.grid .power-source-icon {
+          color: #F87171;
+          background-color: #FEF2F2;
+        }
+        
+        .power-source-card.solar .power-source-icon {
+          color: #34D399;
+          background-color: #ECFDF5;
+        }
+        
+        .power-source-card.grouper .power-source-icon {
+          color: #60A5FA;
+          background-color: #EFF6FF;
+        }
+        
+        .power-source-info {
+          flex: 1;
+        }
+        
+        .power-source-info h4 {
+          font-size: 1rem;
+          font-weight: 600;
+          margin-bottom: 0.5rem;
+        }
+        
+        .power-source-metrics {
+          display: flex;
+          gap: 1rem;
+          margin-bottom: 0.75rem;
+        }
+        
+        .metric {
+          display: flex;
+          flex-direction: column;
+        }
+        
+        .metric-value {
+          font-size: 1.25rem;
+          font-weight: 600;
+        }
+        
+        .metric-label {
+          font-size: 0.75rem;
+          color: #6B7280;
+        }
+        
+        .power-source-status {
+          display: flex;
+          align-items: center;
+          font-size: 0.875rem;
+          color: #6B7280;
+        }
+        
+        .status-indicator {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          margin-right: 0.5rem;
+        }
+        
+        .status-indicator.online {
+          background-color: #34D399;
+        }
+        
+        .status-indicator.standby {
+          background-color: #FBBF24;
+        }
+        
+        .status-indicator.offline {
+          background-color: #F87171;
+        }
+      `}</style>
     </div>
   )
 }
