@@ -38,7 +38,7 @@ export function Dashboard() {
     percentChange: 8
   }
   
-  // Sample environmental data with real-time updates
+  // Environmental data with simulated real-time updates
   const [environmentalData, setEnvironmentalData] = useState({
     interiorTemperature: 24,
     exteriorTemperature: 28,
@@ -48,20 +48,53 @@ export function Dashboard() {
     gasSensor: "Normal"
   })
   
-  // Simulate real-time updates for environmental data
+  // Simulate real-time sensor data updates
   useEffect(() => {
-    const interval = setInterval(() => {
-      setEnvironmentalData(prev => ({
-        ...prev,
-        interiorTemperature: Math.round((prev.interiorTemperature + (Math.random() > 0.5 ? 0.1 : -0.1)) * 10) / 10,
-        exteriorTemperature: Math.round((prev.exteriorTemperature + (Math.random() > 0.5 ? 0.2 : -0.2)) * 10) / 10,
-        interiorHumidity: Math.min(60, Math.max(35, Math.round(prev.interiorHumidity + (Math.random() > 0.5 ? 0.5 : -0.5)))),
-        exteriorHumidity: Math.min(80, Math.max(50, Math.round(prev.exteriorHumidity + (Math.random() > 0.5 ? 0.5 : -0.5))))
-      }))
-    }, 10000)
+    // Function to generate mock sensor data
+    const generateMockSensorData = () => {
+      // Create realistic variations
+      const newInteriorTemp = Math.round((environmentalData.interiorTemperature + (Math.random() > 0.5 ? 0.2 : -0.2)) * 10) / 10
+      
+      // Base exterior data on interior but with more variability and +3 as requested
+      const baseExteriorTemp = newInteriorTemp + (Math.random() > 0.5 ? 1 : -0.5)
+      const newExteriorTemp = Math.round((baseExteriorTemp + 3) * 10) / 10
+      
+      // Humidity changes
+      const newInteriorHumidity = Math.min(60, Math.max(35, Math.round(environmentalData.interiorHumidity + (Math.random() > 0.5 ? 0.7 : -0.7))))
+      const baseExteriorHumidity = newInteriorHumidity + (Math.random() > 0.5 ? 5 : -2)
+      const newExteriorHumidity = Math.min(85, Math.max(45, Math.round(baseExteriorHumidity + 3)))
+      
+      // Air quality and gas sensor occasionally change
+      const airQualityOptions = ["Good", "Moderate", "Fair"]
+      const gasSensorOptions = ["Normal", "Normal", "Normal", "Normal", "Warning"]
+      
+      const newAirQuality = Math.random() > 0.9 
+        ? airQualityOptions[Math.floor(Math.random() * airQualityOptions.length)]
+        : environmentalData.airQuality
+        
+      const newGasSensor = Math.random() > 0.95
+        ? gasSensorOptions[Math.floor(Math.random() * gasSensorOptions.length)]
+        : environmentalData.gasSensor
+      
+      return {
+        interiorTemperature: newInteriorTemp,
+        exteriorTemperature: newExteriorTemp,
+        interiorHumidity: newInteriorHumidity,
+        exteriorHumidity: newExteriorHumidity,
+        airQuality: newAirQuality,
+        gasSensor: newGasSensor
+      }
+    }
     
+    // Update at a faster pace for demo purposes - every 3 seconds
+    const interval = setInterval(() => {
+      const newData = generateMockSensorData()
+      setEnvironmentalData(newData)
+    }, 3000)
+    
+    // Clean up interval on component unmount
     return () => clearInterval(interval)
-  }, [])
+  }, [environmentalData])
   
   // Calculate energy source percentages for the site
   const energySources = {
@@ -487,218 +520,218 @@ export function Dashboard() {
           </div>
         </div>
       </div>
-
-      {/* CSS styles for the new energy source elements */}
       <style jsx>{`
-        .site-info {
-          font-size: 0.85rem;
-          color: #6B7280;
-          margin-top: 2px;
-        }
-        
-        .energy-source-summary {
-          padding: 1rem;
-          border-top: 1px solid #E5E7EB;
-        }
-        
-        .energy-source-summary h4 {
-          font-size: 0.9rem;
-          font-weight: 600;
-          margin-bottom: 0.75rem;
-        }
-        
-        .energy-source-bars {
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-        }
-        
-        .energy-source-item {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-        
-        .source-label {
-          width: 55px;
-          font-size: 0.85rem;
-        }
-        
-        .source-bar-container {
-          flex: 1;
-          height: 10px;
-          background-color: #E5E7EB;
-          border-radius: 5px;
-          overflow: hidden;
-        }
-        
-        .source-bar {
-          height: 100%;
-          border-radius: 5px;
-        }
-        
-        .source-bar.grid {
-          background-color: #F87171;
-        }
-        
-        .source-bar.solar {
-          background-color: #34D399;
-        }
-        
-        .source-bar.grouper {
-          background-color: #60A5FA;
-        }
-        
-        .source-percentage {
-          width: 35px;
-          font-size: 0.85rem;
-          text-align: right;
-        }
-        
-        /* Active Power Source */
-        .active-power-source {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          margin-bottom: 0.25rem;
-        }
-        
-        .power-source-indicator {
-          width: 12px;
-          height: 12px;
-          border-radius: 50%;
-        }
-        
-        .power-source-indicator.grid {
-          background-color: #F87171;
-          box-shadow: 0 0 8px rgba(248, 113, 113, 0.6);
-        }
-        
-        .power-source-indicator.solar {
-          background-color: #34D399;
-          box-shadow: 0 0 8px rgba(52, 211, 153, 0.6);
-        }
-        
-        .power-source-indicator.grouper {
-          background-color: #60A5FA;
-          box-shadow: 0 0 8px rgba(96, 165, 250, 0.6);
-        }
-        
-        .power-source-name {
-          font-size: 1.5rem;
-          font-weight: 600;
-        }
-        
-        /* Power Source Cards */
-        .power-sources-container {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-          padding: 1rem;
-        }
-        
-        .power-source-card {
-          display: flex;
-          padding: 1rem;
-          border-radius: 0.5rem;
-          background-color: #F9FAFB;
-          border: 1px solid #E5E7EB;
-        }
-        
-        .power-source-card.grid {
-          border-left: 4px solid #F87171;
-        }
-        
-        .power-source-card.solar {
-          border-left: 4px solid #34D399;
-        }
-        
-        .power-source-card.grouper {
-          border-left: 4px solid #60A5FA;
-        }
-        
-        .power-source-icon {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 48px;
-          height: 48px;
-          border-radius: 0.5rem;
-          margin-right: 1rem;
-        }
-        
-        .power-source-card.grid .power-source-icon {
-          color: #F87171;
-          background-color: #FEF2F2;
-        }
-        
-        .power-source-card.solar .power-source-icon {
-          color: #34D399;
-          background-color: #ECFDF5;
-        }
-        
-        .power-source-card.grouper .power-source-icon {
-          color: #60A5FA;
-          background-color: #EFF6FF;
-        }
-        
-        .power-source-info {
-          flex: 1;
-        }
-        
-        .power-source-info h4 {
-          font-size: 1rem;
-          font-weight: 600;
-          margin-bottom: 0.5rem;
-        }
-        
-        .power-source-metrics {
-          display: flex;
-          gap: 1rem;
-          margin-bottom: 0.75rem;
-        }
-        
-        .metric {
-          display: flex;
-          flex-direction: column;
-        }
-        
-        .metric-value {
-          font-size: 1.25rem;
-          font-weight: 600;
-        }
-        
-        .metric-label {
-          font-size: 0.75rem;
-          color: #6B7280;
-        }
-        
-        .power-source-status {
-          display: flex;
-          align-items: center;
-          font-size: 0.875rem;
-          color: #6B7280;
-        }
-        
-        .status-indicator {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          margin-right: 0.5rem;
-        }
-        
-        .status-indicator.online {
-          background-color: #34D399;
-        }
-        
-        .status-indicator.standby {
-          background-color: #FBBF24;
-        }
-        
-        .status-indicator.offline {
-          background-color: #F87171;
-        }
-      `}</style>
+    .site-info {
+      font-size: 0.85rem;
+      color: #6B7280;
+      margin-top: 2px;
+    }
+    
+    .energy-source-summary {
+      padding: 1rem;
+      border-top: 1px solid #E5E7EB;
+    }
+    
+    .energy-source-summary h4 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+    
+    .energy-source-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    
+    .energy-source-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .source-label {
+      width: 55px;
+      font-size: 0.85rem;
+    }
+    
+    .source-bar-container {
+      flex: 1;
+      height: 10px;
+      background-color: #E5E7EB;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    
+    .source-bar {
+      height: 100%;
+      border-radius: 5px;
+    }
+    
+    .source-bar.grid {
+      background-color: #F87171;
+    }
+    
+    .source-bar.solar {
+      background-color: #34D399;
+    }
+    
+    .source-bar.grouper {
+      background-color: #60A5FA;
+    }
+    
+    .source-percentage {
+      width: 35px;
+      font-size: 0.85rem;
+      text-align: right;
+    }
+    
+    /* Active Power Source */
+    .active-power-source {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.25rem;
+    }
+    
+    .power-source-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    
+    .power-source-indicator.grid {
+      background-color: #F87171;
+      box-shadow: 0 0 8px rgba(248, 113, 113, 0.6);
+    }
+    
+    .power-source-indicator.solar {
+      background-color: #34D399;
+      box-shadow: 0 0 8px rgba(52, 211, 153, 0.6);
+    }
+    
+    .power-source-indicator.grouper {
+      background-color: #60A5FA;
+      box-shadow: 0 0 8px rgba(96, 165, 250, 0.6);
+    }
+    
+    .power-source-name {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+    
+    /* Power Source Cards */
+    .power-sources-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      padding: 1rem;
+    }
+    
+    .power-source-card {
+      display: flex;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      background-color: #F9FAFB;
+      border: 1px solid #E5E7EB;
+    }
+    
+    .power-source-card.grid {
+      border-left: 4px solid #F87171;
+    }
+    
+    .power-source-card.solar {
+      border-left: 4px solid #34D399;
+    }
+    
+    .power-source-card.grouper {
+      border-left: 4px solid #60A5FA;
+    }
+    
+    .power-source-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      border-radius: 0.5rem;
+      margin-right: 1rem;
+    }
+    
+    .power-source-card.grid .power-source-icon {
+      color: #F87171;
+      background-color: #FEF2F2;
+    }
+    
+    .power-source-card.solar .power-source-icon {
+      color: #34D399;
+      background-color: #ECFDF5;
+    }
+    
+    .power-source-card.grouper .power-source-icon {
+      color: #60A5FA;
+      background-color: #EFF6FF;
+    }
+    
+    .power-source-info {
+      flex: 1;
+    }
+    
+    .power-source-info h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    .power-source-metrics {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 0.75rem;
+    }
+    
+    .metric {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .metric-value {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    
+    .metric-label {
+      font-size: 0.75rem;
+      color: #6B7280;
+    }
+    
+    .power-source-status {
+      display: flex;
+      align-items: center;
+      font-size: 0.875rem;
+      color: #6B7280;
+    }
+    
+    .status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 0.5rem;
+    }
+    
+    .status-indicator.online {
+      background-color: #34D399;
+    }
+    
+    .status-indicator.standby {
+      background-color: #FBBF24;
+    }
+    
+    .status-indicator.offline {
+      background-color: #F87171;
+    }
+  `}</style>
     </div>
   )
+
+  
 }

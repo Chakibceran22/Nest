@@ -32,6 +32,8 @@ bool isScreaming = false;  // Track if buzzer is in screaming mode
 bool fireAlarmActive = false;  // Persistent fire alarm state
 unsigned long lastScreamToggle = 0;  // For controlling scream pattern
 int screamFrequency = 800;  // Starting tone for scream
+unsigned long alarmStartTime = 0;  // When the alarm was started
+const unsigned long ALARM_TIMEOUT = 60000;  // Auto-timeout after 60 seconds (1 minute)
 
 // Update interval
 long interval = 5000;  // Send data every 5 seconds (not const to allow dynamic updates)
@@ -76,6 +78,27 @@ void screamBuzzer() {
   }
 }
 
+// Function to immediately start the buzzer when fire is detected
+void activateFireAlarm() {
+  fireAlarmActive = true;
+  isScreaming = true;
+  // Immediately turn on the buzzer
+  digitalWrite(BUZZER_PIN, HIGH);
+  alarmStartTime = millis();  // Record when alarm started
+  Serial.println("ALERT! FIRE DETECTED! Alarm activated and buzzer turned ON");
+}
+
+// Function to force stop the alarm
+void stopAlarm() {
+  fireAlarmActive = false;
+  isScreaming = false;
+  digitalWrite(BUZZER_PIN, LOW);  // Ensure buzzer is off
+  Serial.println("Alarm has been stopped");
+  
+  // Publish updated state
+  publishState();
+}
+
 // Callback function for incoming messages
 void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Message arrived on topic: ");
@@ -114,6 +137,19 @@ void callback(char* topic, byte* payload, unsigned int length) {
     publishState();
   }
   
+  if (doc.containsKey("flame")) {
+    int flameState = doc["flame"];
+    Serial.print("Received flame state via MQTT: ");
+    Serial.println(flameState);
+    
+    if (flameState == 1) {
+      // Simulate flame detection from MQTT
+      activateFireAlarm();
+      // Publish updated state
+      publishState();
+    }
+  }
+  
   if (doc.containsKey("buzzer")) {
     int buzzerState = doc["buzzer"];
     Serial.print("Setting buzzer state to: ");
@@ -128,16 +164,16 @@ void callback(char* topic, byte* payload, unsigned int length) {
     digitalWrite(RELAY_PIN, relayState);
   }
   
-  if (doc.containsKey("resetAlarm")) {
-    int resetState = doc["resetAlarm"];
+  if (doc.containsKey("resetAlarm") || doc.containsKey("stopAlarm") || doc.containsKey("stop")) {
+    int resetState = 0;
+    
+    if (doc.containsKey("resetAlarm")) resetState = doc["resetAlarm"];
+    if (doc.containsKey("stopAlarm")) resetState = doc["stopAlarm"];
+    if (doc.containsKey("stop")) resetState = doc["stop"];
+    
     if (resetState == 1) {
-      Serial.println("Resetting fire alarm state");
-      fireAlarmActive = false;
-      isScreaming = false;
-      digitalWrite(BUZZER_PIN, LOW);
-      
-      // Publish updated state after reset
-      publishState();
+      Serial.println("Resetting fire alarm state through MQTT command");
+      stopAlarm();  // Use the dedicated function
     }
   }
   
@@ -377,11 +413,9 @@ void loop() {
           Serial.print("Fire Alarm Active: ");
           Serial.println(fireAlarmActive ? "YES" : "NO");
 
-          // Check for flame detection and set persistent alarm
+          // Check for flame detection and activate alarm
           if (flameDetected == LOW) {  // Fire detected
-            fireAlarmActive = true;    // Set the persistent state
-            isScreaming = true;        // Immediately start screaming
-            Serial.println("ALERT! FIRE DETECTED! Alarm activated");
+            activateFireAlarm();  // Call the function to immediately activate the alarm
           }
           
           // FIXED: Only check for turning off screaming if fire alarm isn't active
@@ -414,6 +448,12 @@ void loop() {
       
       // Call the scream function in each loop iteration to make buzzer scream when fire is detected
       screamBuzzer();
+      
+      // Check for alarm timeout
+      if (fireAlarmActive && (millis() - alarmStartTime > ALARM_TIMEOUT)) {
+        Serial.println("Alarm timeout reached - auto-stopping after 60 seconds");
+        stopAlarm();
+      }
     }
   }
 }

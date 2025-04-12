@@ -28,6 +28,7 @@ let deviceState = {
   gas: 0,
   flame: 0,
   lamp: false,
+  fireAlarm: false, // Added to track fire alarm state
   lastUpdate: null,
   connected: false
 };
@@ -112,6 +113,16 @@ client.on('message', async (topic, message) => {
     
     // Update device state based on message type
     if (topic === MQTT_TOPICS.readings) {
+      // Check for fire detection from any source
+      const previousFireAlarmState = deviceState.fireAlarm;
+      
+      // Determine fire alarm state from the message:
+      // 1. Explicit fireAlarm field if present
+      // 2. OR flame detection
+      const flameDetected = data.flame === 1;
+      const explicitFireAlarm = data.fireAlarm === 1;
+      const currentFireAlarmState = explicitFireAlarm || flameDetected;
+      
       // Update local state with sensor readings
       deviceState = {
         ...deviceState,
@@ -120,10 +131,31 @@ client.on('message', async (topic, message) => {
         gas: data.gas || deviceState.gas,
         flame: data.flame || deviceState.flame,
         lamp: data.lamp === 1 || deviceState.lamp,
+        fireAlarm: currentFireAlarmState,
         lastUpdate: new Date()
       };
       
       console.log('Updated device state:', deviceState);
+      
+      // DIRECT FIRE DETECTION - Send notification when flame is detected
+      if (flameDetected) {
+        console.log('FLAME DETECTED! Sending immediate notification to Firestore');
+        
+        // Send notification for fire detection
+        if (firebaseInitialized) {
+          await sendFireAlarmNotification(true, data);
+        }
+      }
+      
+      // Also check if fire alarm state changed to active (redundant fallback)
+      else if (!previousFireAlarmState && currentFireAlarmState) {
+        console.log('FIRE ALARM ACTIVATED! Sending notification to Firestore');
+        
+        // Send notification for fire alarm activation
+        if (firebaseInitialized) {
+          await sendFireAlarmNotification(true, data);
+        }
+      }
       
       // Save to Firebase if initialized
       if (firebaseInitialized) {
@@ -134,6 +166,24 @@ client.on('message', async (topic, message) => {
       console.log('Device status update:', data);
       deviceState.connected = true;
       
+      // Also update fire alarm state if present in status message
+      if (data.hasOwnProperty('fireAlarm')) {
+        const previousFireAlarmState = deviceState.fireAlarm;
+        const currentFireAlarmState = data.fireAlarm === 1;
+        
+        deviceState.fireAlarm = currentFireAlarmState;
+        
+        // Check if fire alarm state changed to active
+        if (!previousFireAlarmState && currentFireAlarmState) {
+          console.log('FIRE ALARM ACTIVATED from status message! Sending notification to Firestore');
+          
+          // Send notification for fire alarm activation
+          if (firebaseInitialized) {
+            await sendFireAlarmNotification(true, data);
+          }
+        }
+      }
+      
       // Save status to Firebase if initialized
       if (firebaseInitialized) {
         await saveStatusToFirebase(data);
@@ -143,6 +193,23 @@ client.on('message', async (topic, message) => {
       if (data.hasOwnProperty('lamp')) {
         deviceState.lamp = data.lamp === 1;
         console.log(`Lamp state updated: ${deviceState.lamp ? 'ON' : 'OFF'}`);
+      }
+      
+      if (data.hasOwnProperty('fireAlarm')) {
+        const previousFireAlarmState = deviceState.fireAlarm;
+        const currentFireAlarmState = data.fireAlarm === 1;
+        
+        deviceState.fireAlarm = currentFireAlarmState;
+        
+        // Check if fire alarm state changed to active
+        if (!previousFireAlarmState && currentFireAlarmState) {
+          console.log('FIRE ALARM ACTIVATED from state message! Sending notification to Firestore');
+          
+          // Send notification for fire alarm activation
+          if (firebaseInitialized) {
+            await sendFireAlarmNotification(true, data);
+          }
+        }
       }
     }
   } catch (error) {
@@ -166,6 +233,7 @@ async function saveToFirebase(sensorData, topic) {
       gas: sensorData.gas,
       flame: sensorData.flame,
       lamp: sensorData.lamp,
+      fireAlarm: sensorData.fireAlarm || 0,
       topic: topic,
       timestamp: timestamp,
       receivedAt: new Date().toISOString() // Local timestamp for reference
@@ -189,6 +257,85 @@ async function saveToFirebase(sensorData, topic) {
     }
   } catch (error) {
     console.error('Error saving to Firebase:', error);
+  }
+}
+
+// Function to send fire alarm notifications to Firestore
+async function sendFireAlarmNotification(isActive, sensorData) {
+  if (!firebaseInitialized) {
+    console.log('Cannot send fire alarm notification: Firebase not initialized');
+    return;
+  }
+  
+  try {
+    const db = admin.firestore();
+    const fireAlarmRef = db.collection('fireAlarms').doc();
+    
+    // Create a timestamp for the record
+    const timestamp = admin.firestore.FieldValue.serverTimestamp();
+    
+    // Check if flame was detected directly
+    const flameDetected = sensorData.flame === 1;
+    
+    // Get a human-readable timestamp for notification
+    const now = new Date();
+    const formattedTime = now.toLocaleTimeString() + ' on ' + now.toLocaleDateString();
+    
+    // Create a notification object with detailed information
+    const notificationData = {
+      isActive: isActive,
+      source: isActive 
+        ? (flameDetected ? 'FLAME DETECTED by ESP32 sensor!' : 'Fire alarm activated by ESP32') 
+        : 'Fire alarm reset',
+      temperature: sensorData.temperature || deviceState.temperature,
+      humidity: sensorData.humidity || deviceState.humidity,
+      gasValue: sensorData.gas || deviceState.gas,
+      flameDetected: flameDetected,
+      timestamp: timestamp,
+      detectedAt: now.toISOString(),
+      humanReadableTime: formattedTime,
+      status: isActive ? 'active' : 'resolved',
+      severity: 'high',
+      location: 'Main building',
+      requiresEvacuation: isActive,
+      notificationType: 'FIRE_ALARM',
+      priority: 'URGENT',
+      actionRequired: isActive ? 'Immediate evacuation required' : 'All clear'
+    };
+    
+    // Save detailed notification
+    await fireAlarmRef.set(notificationData);
+    
+    console.log(`🔥 FIRE NOTIFICATION (${isActive ? 'ACTIVE' : 'RESOLVED'}) saved to Firestore with ID: ${fireAlarmRef.id}`);
+    
+    // Also update a single document with the current alarm state for easy querying
+    const currentStateRef = db.collection('fireAlarmState').doc('current');
+    await currentStateRef.set({
+      isActive: isActive,
+      lastUpdated: timestamp,
+      lastCheckedAt: now.toISOString(),
+      humanReadableTime: formattedTime
+    }, { merge: true });
+    
+    // Add to a general notifications collection for a centralized notification system
+    const notificationRef = db.collection('notifications').doc();
+    await notificationRef.set({
+      ...notificationData,
+      id: notificationRef.id,
+      read: false,
+      title: isActive ? '🔥 FIRE DETECTED! EMERGENCY!' : 'Fire alarm resolved',
+      message: isActive 
+        ? `Fire detected at ${formattedTime}. Immediate action required.`
+        : `Fire alarm cleared at ${formattedTime}. All clear.`,
+      timestamp: timestamp
+    });
+    
+    console.log('General notification also created for notification center');
+    
+    return true;
+  } catch (error) {
+    console.error('Error saving fire alarm notification to Firebase:', error);
+    return false;
   }
 }
 
@@ -273,7 +420,6 @@ app.post('/api/lamp/toggle', (req, res) => {
   }
 });
 
-
 // Control buzzer
 app.post('/api/buzzer', (req, res) => {
   const { state } = req.body;
@@ -285,6 +431,8 @@ app.post('/api/buzzer', (req, res) => {
   const success = sendCommand({ buzzer: state ? 1 : 0 });
   res.status(success ? 200 : 500).json({ success });
 });
+
+// Toggle buzzer
 app.post('/api/buzzer/toggle', (req, res) => {
   const newState = !deviceState.buzzer;
   const success = sendCommand({ buzzer: newState ? 1 : 0 });
@@ -296,7 +444,35 @@ app.post('/api/buzzer/toggle', (req, res) => {
   } else {
     res.status(500).json({ success: false, error: 'Failed to send command' });
   }
-})
+});
+
+// Reset Fire Alarm API endpoint
+app.post('/api/alarm/reset', (req, res) => {
+  // Send command to reset the fire alarm
+  const success = sendCommand({ resetAlarm: 1 });
+  
+  if (success) {
+    // Optimistically update local state
+    const previousFireAlarmState = deviceState.fireAlarm;
+    deviceState.fireAlarm = false;
+    
+    // If alarm was active, log the state change and send notification
+    if (previousFireAlarmState) {
+      console.log('Fire alarm reset via API');
+      
+      // Send notification for fire alarm state change
+      if (firebaseInitialized) {
+        sendFireAlarmNotification(false, deviceState)
+          .catch(err => console.error('Failed to send fire alarm reset notification:', err));
+      }
+    }
+    
+    res.status(200).json({ success: true, fireAlarm: false, message: "Fire alarm reset successfully" });
+  } else {
+    res.status(500).json({ success: false, error: 'Failed to send reset command' });
+  }
+});
+
 // Control relay
 app.post('/api/relay', (req, res) => {
   const { state } = req.body;
@@ -349,6 +525,62 @@ app.get('/api/data/recent', async (req, res) => {
   }
 });
 
+// Get fire alarm history from Firebase
+app.get('/api/fire-alarms', async (req, res) => {
+  if (!firebaseInitialized) {
+    return res.status(503).json({ error: 'Firebase not initialized' });
+  }
+  
+  try {
+    const db = admin.firestore();
+    const snapshot = await db.collection('fireAlarms')
+      .orderBy('timestamp', 'desc')
+      .limit(10)
+      .get();
+    
+    const data = [];
+    snapshot.forEach(doc => {
+      data.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    res.status(200).json(data);
+  } catch (error) {
+    console.error('Error fetching fire alarm history:', error);
+    res.status(500).json({ error: 'Failed to fetch data' });
+  }
+});
+
+// Get current fire alarm state
+app.get('/api/fire-alarm/state', async (req, res) => {
+  if (!firebaseInitialized) {
+    return res.status(503).json({ error: 'Firebase not initialized' });
+  }
+  
+  try {
+    const db = admin.firestore();
+    const doc = await db.collection('fireAlarmState').doc('current').get();
+    
+    if (doc.exists) {
+      res.status(200).json({
+        ...doc.data(),
+        realTimeState: deviceState.fireAlarm  // Also include real-time state from MQTT
+      });
+    } else {
+      res.status(200).json({ 
+        isActive: false,
+        realTimeState: deviceState.fireAlarm,
+        note: "No fire alarm state record found" 
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching fire alarm state:', error);
+    res.status(500).json({ error: 'Failed to fetch data' });
+  }
+});
+
 // Send custom command
 app.post('/api/command', (req, res) => {
   const command = req.body;
@@ -366,7 +598,8 @@ app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
     mqtt: client.connected ? 'connected' : 'disconnected',
-    firebase: firebaseInitialized ? 'initialized' : 'not initialized'
+    firebase: firebaseInitialized ? 'initialized' : 'not initialized',
+    fireAlarmActive: deviceState.fireAlarm
   });
 });
 
@@ -398,6 +631,7 @@ console.log('  buzzer:on   - Turn buzzer ON');
 console.log('  buzzer:off  - Turn buzzer OFF');
 console.log('  relay:on    - Turn relay ON');
 console.log('  relay:off   - Turn relay OFF');
+console.log('  alarm:reset - Reset the fire alarm');
 console.log('  interval:X  - Set interval to X ms (e.g., interval:5000)');
 console.log('  state       - Show current device state');
 console.log('  quit        - Exit the application');
@@ -423,6 +657,22 @@ function promptUser() {
     }
     else if (command === 'relay:off') {
       sendCommand({ relay: 0 });
+    }
+    else if (command === 'alarm:reset') {
+      sendCommand({ resetAlarm: 1 });
+      console.log('Fire alarm reset command sent');
+      
+      // Also update local state
+      if (deviceState.fireAlarm) {
+        deviceState.fireAlarm = false;
+        console.log('Local fire alarm state reset');
+        
+        // Send notification for alarm reset
+        if (firebaseInitialized) {
+          sendFireAlarmNotification(false, deviceState)
+            .catch(err => console.error('Failed to send fire alarm reset notification:', err));
+        }
+      }
     }
     else if (command.startsWith('interval:')) {
       const ms = parseInt(command.split(':')[1]);
