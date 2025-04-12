@@ -945,12 +945,11 @@ export default function Hardware() {
 
       {/* Improved Details Modal with Tabs */}
       {showDetailsModal && selectedHardware && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
             {/* Modal Header */}
-            <div className="p-5 border-b flex justify-between items-center bg-gradient-to-r from-blue-50 to-gray-50">
+            <div className="p-6 border-b flex justify-between items-center bg-gradient-to-r from-blue-50 to-gray-50">
               <h3 className="text-xl font-bold flex items-center gap-2">
-                
                 <div>
                   {selectedHardware.name}
                   <div className="text-sm font-normal text-gray-500">{selectedHardware.location}</div>
@@ -976,9 +975,9 @@ export default function Hardware() {
 
             {/* Tabs Navigation */}
             <div className="border-b">
-              <div className="flex">
+              <div className="flex px-2">
                 <button
-                  className={`px-5 py-3 font-medium text-sm flex items-center gap-2 ${
+                  className={`px-6 py-4 font-medium text-sm flex items-center gap-2 ${
                     activeTab === "overview"
                       ? "border-b-2 border-blue-600 text-blue-600"
                       : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
@@ -989,7 +988,7 @@ export default function Hardware() {
                   Overview
                 </button>
                 <button
-                  className={`px-5 py-3 font-medium text-sm flex items-center gap-2 ${
+                  className={`px-6 py-4 font-medium text-sm flex items-center gap-2 ${
                     activeTab === "anomalies"
                       ? "border-b-2 border-blue-600 text-blue-600"
                       : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
@@ -1005,7 +1004,7 @@ export default function Hardware() {
                   )}
                 </button>
                 <button
-                  className={`px-5 py-3 font-medium text-sm flex items-center gap-2 ${
+                  className={`px-6 py-4 font-medium text-sm flex items-center gap-2 ${
                     activeTab === "details"
                       ? "border-b-2 border-blue-600 text-blue-600"
                       : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
@@ -1022,15 +1021,15 @@ export default function Hardware() {
             <div className="flex-1 overflow-y-auto">
               {/* Overview Tab */}
               {activeTab === "overview" && (
-                <div className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {/* Key Metrics */}
-                    <div className="bg-white rounded-lg border p-5 shadow-sm">
+                    <div className="bg-white rounded-lg border p-6 shadow-sm">
                       <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
                         <Activity className="w-5 h-5 text-blue-600" />
                         Key Metrics
                       </h4>
-                      <div className="space-y-4">
+                      <div className="space-y-4 text-sm">
                         {selectedHardware.cpu !== undefined && (
                           <div>
                             <div className="flex justify-between mb-1">
@@ -1266,12 +1265,12 @@ export default function Hardware() {
                     </div>
 
                     {/* Status Information */}
-                    <div className="bg-white rounded-lg border p-5 shadow-sm">
+                    <div className="bg-white rounded-lg border p-6 shadow-sm">
                       <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
                         <CheckCircle className="w-5 h-5 text-green-600" />
                         Status Information
                       </h4>
-                      <div className="space-y-3">
+                      <div className="space-y-4 text-sm">
                         <div className="flex justify-between py-2 border-b">
                           <span className="text-gray-600">Status:</span>
                           <span
@@ -1352,7 +1351,7 @@ export default function Hardware() {
                   </div>
 
                   {/* Recent Anomalies Preview */}
-                  <div className="mt-6">
+                  <div className="mt-10">
                     <div className="flex justify-between items-center mb-4">
                       <h4 className="text-lg font-semibold flex items-center gap-2">
                         <AlertTriangle className="w-5 h-5 text-yellow-600" />
@@ -1429,7 +1428,7 @@ export default function Hardware() {
 
               {/* Anomalies Tab */}
               {activeTab === "anomalies" && (
-                <div className="p-6">
+                <div className="p-8">
                   <div className="mb-4">
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="text-lg font-semibold">Active Anomalies</h4>
@@ -1444,13 +1443,13 @@ export default function Hardware() {
                   </div>
 
                   {selectedHardware.anomalies.length > 0 ? (
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       {selectedHardware.anomalies.map((anomaly) => (
                         <div
                           key={anomaly.id}
-                          className={`p-4 rounded-lg border shadow-sm ${getSeverityColor(anomaly.severity)}`}
+                          className={`p-6 rounded-lg border shadow-sm ${getSeverityColor(anomaly.severity)}`}
                         >
-                          <div className="flex items-start gap-4">
+                          <div className="flex items-start gap-5">
                             <div
                               className={`mt-1 p-2 rounded-full ${
                                 anomaly.severity === "critical"
@@ -1566,13 +1565,13 @@ export default function Hardware() {
 
               {/* Technical Details Tab */}
               {activeTab === "details" && (
-                <div className="p-6">
+                <div className="p-8">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {selectedHardware.type === "bts" && (
                       <>
-                        <div className="bg-white rounded-lg border p-5 shadow-sm">
+                        <div className="bg-white rounded-lg border p-6 shadow-sm">
                           <h5 className="font-medium text-lg mb-4 border-b pb-2">Network Configuration</h5>
-                          <div className="space-y-3 text-sm">
+                          <div className="space-y-4 text-sm">
                             <div className="flex justify-between py-2 border-b">
                               <span className="text-gray-600">Cell ID:</span>
                               <span className="font-medium">BTS-{selectedHardware.id.toString().padStart(3, "0")}</span>
@@ -1599,9 +1598,9 @@ export default function Hardware() {
                             </div>
                           </div>
                         </div>
-                        <div className="bg-white rounded-lg border p-5 shadow-sm">
+                        <div className="bg-white rounded-lg border p-6 shadow-sm">
                           <h5 className="font-medium text-lg mb-4 border-b pb-2">Performance History</h5>
-                          <div className="space-y-3 text-sm">
+                          <div className="space-y-4 text-sm">
                             <div className="flex justify-between py-2 border-b">
                               <span className="text-gray-600">Last Restart:</span>
                               <span className="font-medium">{selectedHardware.uptime} ago</span>
@@ -1633,9 +1632,9 @@ export default function Hardware() {
 
                     {selectedHardware.type === "transmission" && (
                       <>
-                        <div className="bg-white rounded-lg border p-5 shadow-sm">
+                        <div className="bg-white rounded-lg border p-6 shadow-sm">
                           <h5 className="font-medium text-lg mb-4 border-b pb-2">Link Information</h5>
-                          <div className="space-y-3 text-sm">
+                          <div className="space-y-4 text-sm">
                             <div className="flex justify-between py-2 border-b">
                               <span className="text-gray-600">Link Type:</span>
                               <span className="font-medium">Point-to-Point Microwave</span>
@@ -1662,9 +1661,9 @@ export default function Hardware() {
                             </div>
                           </div>
                         </div>
-                        <div className="bg-white rounded-lg border p-5 shadow-sm">
+                        <div className="bg-white rounded-lg border p-6 shadow-sm">
                           <h5 className="font-medium text-lg mb-4 border-b pb-2">Performance Metrics</h5>
-                          <div className="space-y-3 text-sm">
+                          <div className="space-y-4 text-sm">
                             <div className="flex justify-between py-2 border-b">
                               <span className="text-gray-600">Latency:</span>
                               <span className="font-medium">4.2 ms</span>
@@ -1696,9 +1695,9 @@ export default function Hardware() {
 
                     {selectedHardware.type === "network" && (
                       <>
-                        <div className="bg-white rounded-lg border p-5 shadow-sm">
+                        <div className="bg-white rounded-lg border p-6 shadow-sm">
                           <h5 className="font-medium text-lg mb-4 border-b pb-2">Network Configuration</h5>
-                          <div className="space-y-3 text-sm">
+                          <div className="space-y-4 text-sm">
                             <div className="flex justify-between py-2 border-b">
                               <span className="text-gray-600">IP Range:</span>
                               <span className="font-medium">10.45.67.0/24</span>
@@ -1725,9 +1724,9 @@ export default function Hardware() {
                             </div>
                           </div>
                         </div>
-                        <div className="bg-white rounded-lg border p-5 shadow-sm">
+                        <div className="bg-white rounded-lg border p-6 shadow-sm">
                           <h5 className="font-medium text-lg mb-4 border-b pb-2">Traffic Statistics</h5>
-                          <div className="space-y-3 text-sm">
+                          <div className="space-y-4 text-sm">
                             <div className="flex justify-between py-2 border-b">
                               <span className="text-gray-600">Throughput:</span>
                               <span className="font-medium">3.2 Gbps</span>
@@ -1759,9 +1758,9 @@ export default function Hardware() {
 
                     {selectedHardware.type === "power" && (
                       <>
-                        <div className="bg-white rounded-lg border p-5 shadow-sm">
+                        <div className="bg-white rounded-lg border p-6 shadow-sm">
                           <h5 className="font-medium text-lg mb-4 border-b pb-2">Power System</h5>
-                          <div className="space-y-3 text-sm">
+                          <div className="space-y-4 text-sm">
                             <div className="flex justify-between py-2 border-b">
                               <span className="text-gray-600">Input Voltage:</span>
                               <span className="font-medium">220V AC</span>
@@ -1788,9 +1787,9 @@ export default function Hardware() {
                             </div>
                           </div>
                         </div>
-                        <div className="bg-white rounded-lg border p-5 shadow-sm">
+                        <div className="bg-white rounded-lg border p-6 shadow-sm">
                           <h5 className="font-medium text-lg mb-4 border-b pb-2">Battery Information</h5>
-                          <div className="space-y-3 text-sm">
+                          <div className="space-y-4 text-sm">
                             <div className="flex justify-between py-2 border-b">
                               <span className="text-gray-600">Battery Type:</span>
                               <span className="font-medium">Lithium-Ion</span>
@@ -1822,9 +1821,9 @@ export default function Hardware() {
 
                     {selectedHardware.type === "hvac" && (
                       <>
-                        <div className="bg-white rounded-lg border p-5 shadow-sm">
+                        <div className="bg-white rounded-lg border p-6 shadow-sm">
                           <h5 className="font-medium text-lg mb-4 border-b pb-2">HVAC System</h5>
-                          <div className="space-y-3 text-sm">
+                          <div className="space-y-4 text-sm">
                             <div className="flex justify-between py-2 border-b">
                               <span className="text-gray-600">Cooling Capacity:</span>
                               <span className="font-medium">24,000 BTU</span>
@@ -1851,9 +1850,9 @@ export default function Hardware() {
                             </div>
                           </div>
                         </div>
-                        <div className="bg-white rounded-lg border p-5 shadow-sm">
+                        <div className="bg-white rounded-lg border p-6 shadow-sm">
                           <h5 className="font-medium text-lg mb-4 border-b pb-2">Maintenance</h5>
-                          <div className="space-y-3 text-sm">
+                          <div className="space-y-4 text-sm">
                             <div className="flex justify-between py-2 border-b">
                               <span className="text-gray-600">Filter Status:</span>
                               <span className="font-medium">Good</span>
@@ -1888,14 +1887,14 @@ export default function Hardware() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 border-t bg-gray-50 flex justify-end gap-2">
+            <div className="p-6 border-t bg-gray-50 flex justify-end gap-3">
               <button
                 onClick={closeModals}
-                className="btn btn-secondary px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition-colors"
+                className="btn btn-secondary px-5 py-2.5 bg-gray-200 hover:bg-gray-300 rounded transition-colors"
               >
                 Close
               </button>
-              <button className="btn btn-primary px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors">
+              <button className="btn btn-primary px-5 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors">
                 Generate Report
               </button>
             </div>

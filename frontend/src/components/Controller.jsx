@@ -1,8 +1,22 @@
+"use client"
+
 import { useState, useRef, useEffect } from "react"
 import {
-  Camera, Wind, Thermometer, Power, Video, Square, Lock, AlignLeft, Sun, Moon,
-  Droplet, Bell, AlertTriangle, Layers, BarChart2, Sliders, Save, RotateCw, Eye,
-  Check, X, Plus,Zap
+  Camera,
+  Wind,
+  Thermometer,
+  Power,
+  Video,
+  Square,
+  Lock,
+  Sun,
+  AlertTriangle,
+  BarChart2,
+  Save,
+  RotateCw,
+  Eye,
+  X,
+  Zap,
 } from "lucide-react"
 import axios from "axios"
 
@@ -24,15 +38,22 @@ export function Controllers() {
   const [streamActive, setStreamActive] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const [recordedChunks, setRecordedChunks] = useState([])
-  const [cameraSelector, setCameraSelector] = useState('user')
+  const [cameraSelector, setCameraSelector] = useState("user")
   const [notifications, setNotifications] = useState(true)
   const [motionDetection, setMotionDetection] = useState(true)
   const [solarMode, setSolarMode] = useState(false)
-
+  const [cameraError, setCameraError] = useState(null) // New state for camera errors
 
   // Automation schedules
   const [schedules, setSchedules] = useState([
-    { id: 1, name: "Morning Temperature", action: "Set temperature to 23°C", time: "08:00", days: "Mon-Fri", active: true },
+    {
+      id: 1,
+      name: "Morning Temperature",
+      action: "Set temperature to 23°C",
+      time: "08:00",
+      days: "Mon-Fri",
+      active: true,
+    },
     { id: 2, name: "Evening Lights", action: "Turn on all lights", time: "18:00", days: "Daily", active: true },
     { id: 3, name: "Night Security", action: "Activate security system", time: "22:00", days: "Daily", active: true },
   ])
@@ -57,7 +78,7 @@ export function Controllers() {
       const newLog = {
         time: new Date().toLocaleTimeString(),
         message: "EMERGENCY MODE ACTIVATED",
-        type: "emergency"
+        type: "emergency",
       }
       setLogs([newLog, ...logs])
 
@@ -71,10 +92,13 @@ export function Controllers() {
   // Function to start the webcam with error handling
   const startWebcam = async () => {
     try {
+      // Reset any previous camera errors
+      setCameraError(null)
+
       // Stop any existing stream first
       if (streamRef.current) {
-        const tracks = streamRef.current.getTracks();
-        tracks.forEach(track => track.stop());
+        const tracks = streamRef.current.getTracks()
+        tracks.forEach((track) => track.stop())
       }
 
       // Request camera access with constraints for better compatibility
@@ -82,192 +106,211 @@ export function Controllers() {
         video: {
           width: { ideal: 1280 },
           height: { ideal: 720 },
-          facingMode: cameraSelector
+          facingMode: cameraSelector,
         },
-        audio: false
-      });
+        audio: false,
+      })
 
-      streamRef.current = stream;
+      streamRef.current = stream
 
       if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+        videoRef.current.srcObject = stream
 
         // Wait for video to be ready
         videoRef.current.onloadedmetadata = () => {
-          videoRef.current.play().then(() => {
-            setStreamActive(true);
+          videoRef.current
+            .play()
+            .then(() => {
+              setStreamActive(true)
 
-            // Add log entry
-            const newLog = {
-              time: new Date().toLocaleTimeString(),
-              message: "Camera stream activated",
-              type: "info"
-            }
-            setLogs([newLog, ...logs])
-          }).catch(err => {
-            console.error("Error playing video:", err);
-          });
-        };
+              // Add log entry
+              const newLog = {
+                time: new Date().toLocaleTimeString(),
+                message: "Camera stream activated",
+                type: "info",
+              }
+              setLogs([newLog, ...logs])
+            })
+            .catch((err) => {
+              console.error("Error playing video:", err)
+              setCameraError("Failed to play video stream")
+              setStreamActive(false)
+            })
+        }
       }
     } catch (err) {
-      console.error("Error accessing webcam:", err);
+      console.error("Error accessing webcam:", err)
+
+      // Set specific error message
+      setCameraError(err.message || "Failed to access camera")
+      setStreamActive(false)
 
       // Add log entry
       const newLog = {
         time: new Date().toLocaleTimeString(),
         message: "Failed to access camera: " + err.message,
-        type: "error"
+        type: "error",
       }
       setLogs([newLog, ...logs])
-
-      alert("Could not access webcam. Please check permissions.");
-      setSurveillance(false);
     }
   }
 
   // Function to stop the webcam
   const stopWebcam = () => {
     if (isRecording) {
-      stopRecording();
+      stopRecording()
     }
 
     if (streamRef.current) {
-      const tracks = streamRef.current.getTracks();
-      tracks.forEach(track => track.stop());
-      streamRef.current = null;
+      const tracks = streamRef.current.getTracks()
+      tracks.forEach((track) => track.stop())
+      streamRef.current = null
     }
 
     if (videoRef.current) {
-      videoRef.current.srcObject = null;
+      videoRef.current.srcObject = null
     }
 
-    setStreamActive(false);
+    setStreamActive(false)
 
     // Add log entry
     const newLog = {
       time: new Date().toLocaleTimeString(),
       message: "Camera stream deactivated",
-      type: "info"
+      type: "info",
     }
     setLogs([newLog, ...logs])
   }
 
   // Start recording function
   const startRecording = () => {
-    if (!streamRef.current) return;
+    if (!streamRef.current) return
 
-    setRecordedChunks([]);
+    setRecordedChunks([])
     try {
-      const mediaRecorder = new MediaRecorder(streamRef.current, {
-        mimeType: 'video/webm;codecs=vp9,opus'
-      });
+      // Try different MIME types for better browser compatibility
+      let options = { mimeType: "video/webm;codecs=vp9,opus" }
 
-      mediaRecorderRef.current = mediaRecorder;
+      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+        options = { mimeType: "video/webm;codecs=vp8,opus" }
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+          options = { mimeType: "video/webm" }
+          if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+            options = { mimeType: "" } // Let browser choose
+          }
+        }
+      }
+
+      const mediaRecorder = new MediaRecorder(streamRef.current, options)
+
+      mediaRecorderRef.current = mediaRecorder
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
-          setRecordedChunks(prev => [...prev, event.data]);
+          setRecordedChunks((prev) => [...prev, event.data])
         }
-      };
+      }
 
-      mediaRecorder.start(1000); // Collect data every second
-      setIsRecording(true);
+      mediaRecorder.start(1000) // Collect data every second
+      setIsRecording(true)
 
       // Add log entry
       const newLog = {
         time: new Date().toLocaleTimeString(),
         message: "Video recording started",
-        type: "info"
+        type: "info",
       }
       setLogs([newLog, ...logs])
     } catch (err) {
-      console.error("Error starting recording:", err);
+      console.error("Error starting recording:", err)
 
       // Add log entry
       const newLog = {
         time: new Date().toLocaleTimeString(),
         message: "Failed to start recording: " + err.message,
-        type: "error"
+        type: "error",
       }
       setLogs([newLog, ...logs])
 
-      alert("Could not start recording. Your browser may not support this feature.");
+      alert("Could not start recording. Your browser may not support this feature.")
     }
-  };
+  }
 
   // Stop recording function
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
 
       // Add log entry
       const newLog = {
         time: new Date().toLocaleTimeString(),
         message: "Video recording stopped",
-        type: "info"
+        type: "info",
       }
       setLogs([newLog, ...logs])
     }
-  };
+  }
 
   // Save recorded video
   const saveRecording = () => {
     if (recordedChunks.length === 0) {
-      alert("No recording available to save");
-      return;
+      alert("No recording available to save")
+      return
     }
 
-    const blob = new Blob(recordedChunks, { type: 'video/webm' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const blob = new Blob(recordedChunks, { type: "video/webm" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
 
-    document.body.appendChild(a);
-    a.style = 'display: none';
-    a.href = url;
-    a.download = `surveillance-recording-${new Date().toISOString()}.webm`;
-    a.click();
+    document.body.appendChild(a)
+    a.style = "display: none"
+    a.href = url
+    a.download = `surveillance-recording-${new Date().toISOString()}.webm`
+    a.click()
 
     // Cleanup
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
 
     // Add log entry
     const newLog = {
       time: new Date().toLocaleTimeString(),
       message: "Video recording saved",
-      type: "success"
+      type: "success",
     }
     setLogs([newLog, ...logs])
-  };
+  }
 
   // Toggle webcam based on surveillance state
   useEffect(() => {
     if (surveillance) {
-      startWebcam();
+      startWebcam()
     } else {
-      stopWebcam();
+      stopWebcam()
+      // Clear any camera errors when turning off surveillance
+      setCameraError(null)
     }
 
     // Cleanup on component unmount
     return () => {
-      stopWebcam();
+      stopWebcam()
     }
-  }, [surveillance, cameraSelector]);
+  }, [surveillance, cameraSelector])
 
   // Function to view in fullscreen
   const viewFullScreen = () => {
     if (videoRef.current) {
       try {
         if (videoRef.current.requestFullscreen) {
-          videoRef.current.requestFullscreen();
+          videoRef.current.requestFullscreen()
         } else if (videoRef.current.webkitRequestFullscreen) {
-          videoRef.current.webkitRequestFullscreen();
+          videoRef.current.webkitRequestFullscreen()
         } else if (videoRef.current.msRequestFullscreen) {
-          videoRef.current.msRequestFullscreen();
+          videoRef.current.msRequestFullscreen()
         }
       } catch (error) {
-        console.error("Fullscreen failed:", error);
+        console.error("Fullscreen failed:", error)
       }
     }
   }
@@ -277,83 +320,82 @@ export function Controllers() {
     // Update the control state based on the controlName
     switch (controlName) {
       case "grouper":
-        setGrouper(value);
-        break;
+        setGrouper(value)
+        break
       case "surveillance":
-        setSurveillance(value);
-        break;
+        setSurveillance(value)
+        break
       case "security":
-        setSecuritySystem(value);
-        break;
+        setSecuritySystem(value)
+        break
       case "emergency":
-        setEmergencyMode(value);
-        break;
+        setEmergencyMode(value)
+        break
       case "lights":
-        setLightsOn(value);
+        setLightsOn(value)
         try {
-          const response = await axios.post("http://localhost:3000/api/lamp/toggle");
+          const response = await axios.post("http://localhost:3000/api/lamp/toggle")
         } catch (error) {
-          console.error("Error updating lights:", error);
+          console.error("Error updating lights:", error)
         }
-        break;
+        break
       case "nightMode":
-        setNightMode(value);
-        break;
+        setNightMode(value)
+        break
       case "temperature":
-        setTemperature(value);
-        break;
+        setTemperature(value)
+        break
       case "fanSpeed":
-        setFanSpeed(value);
-        break;
-
+        setFanSpeed(value)
+        break
       case "notifications":
-        setNotifications(value);
-        break;
+        setNotifications(value)
+        break
       case "motionDetection":
-        setMotionDetection(value);
-        break;
+        setMotionDetection(value)
+        break
       case "solarMode":
-        setSolarMode(value);
-        break;
+        setSolarMode(value)
+        break
       default:
-        break;
+        break
     }
 
     // Create log message based on control type
-    let logMessage = "";
+    let logMessage = ""
     if (controlType === "toggle") {
-      logMessage = `${controlName} ${value ? "activated" : "deactivated"}`;
+      logMessage = `${controlName} ${value ? "activated" : "deactivated"}`
     } else if (controlType === "slider") {
-      logMessage = `${controlName} set to ${value}${controlName === "temperature" ? "°C" : "%"}`;
+      logMessage = `${controlName} set to ${value}${controlName === "temperature" ? "°C" : "%"}`
     }
 
     // Capitalize first letter of control name for log
-    const formattedControlName = controlName.charAt(0).toUpperCase() + controlName.slice(1);
+    const formattedControlName = controlName.charAt(0).toUpperCase() + controlName.slice(1)
 
     // Add log entry
     const newLog = {
       time: new Date().toLocaleTimeString(),
       message: formattedControlName + " " + logMessage,
-      type: "info"
+      type: "info",
     }
     setLogs([newLog, ...logs.slice(0, 49)]) // Keep only the latest 50 logs
   }
 
   // Toggle schedule status
   const toggleSchedule = (id) => {
-    setSchedules(schedules.map(schedule =>
-      schedule.id === id ? { ...schedule, active: !schedule.active } : schedule
-    ))
+    setSchedules(
+      schedules.map((schedule) => (schedule.id === id ? { ...schedule, active: !schedule.active } : schedule)),
+    )
 
     // Find the schedule
-    const schedule = schedules.find(s => s.id === id);
+    const schedule = schedules.find((s) => s.id === id)
 
     // Add log entry
     if (schedule) {
       const newLog = {
         time: new Date().toLocaleTimeString(),
         message: `Schedule "${schedule.name}" ${!schedule.active ? "activated" : "deactivated"}`,
-        type: "info"
+        type: "info",
       }
       setLogs([newLog, ...logs])
     }
@@ -361,15 +403,23 @@ export function Controllers() {
 
   // Function to clear all logs
   const clearLogs = () => {
-    setLogs([{
-      time: new Date().toLocaleTimeString(),
-      message: "System logs cleared",
-      type: "info"
-    }])
+    setLogs([
+      {
+        time: new Date().toLocaleTimeString(),
+        message: "System logs cleared",
+        type: "info",
+      },
+    ])
+  }
+
+  // Function to retry camera connection
+  const retryCamera = () => {
+    setCameraError(null)
+    startWebcam()
   }
 
   return (
-    <div className={`controllers-container ${emergencyMode ? 'emergency-mode' : ''} ${nightMode ? 'night-mode' : ''}`}>
+    <div className={`controllers-container ${emergencyMode ? "emergency-mode" : ""} ${nightMode ? "night-mode" : ""}`}>
       <div className="controllers-header">
         <h2 className="page-title">System Controllers</h2>
         <div className="system-status">
@@ -394,11 +444,7 @@ export function Controllers() {
           <div className="card-content controller-toggle">
             <span className="toggle-label">{grouper ? "Activated" : "Deactivated"}</span>
             <label className="switch">
-              <input
-                type="checkbox"
-                checked={grouper}
-                onChange={() => handleControlChange("grouper", !grouper)}
-              />
+              <input type="checkbox" checked={grouper} onChange={() => handleControlChange("grouper", !grouper)} />
               <span className="slider round"></span>
             </label>
           </div>
@@ -470,11 +516,7 @@ export function Controllers() {
           <div className="card-content controller-toggle">
             <span className="toggle-label">{lightsOn ? "Lights On" : "Lights Off"}</span>
             <label className="switch">
-              <input
-                type="checkbox"
-                checked={lightsOn}
-                onChange={() => handleControlChange("lights", !lightsOn)}
-              />
+              <input type="checkbox" checked={lightsOn} onChange={() => handleControlChange("lights", !lightsOn)} />
               <span className="slider round"></span>
             </label>
           </div>
@@ -500,102 +542,9 @@ export function Controllers() {
         </div>
 
         {/* Environment Controls Section */}
-        <div className="card">
-          <div className="card-header">
-            <h3 className="card-title">
-              <Thermometer className="card-icon" /> Temperature Control
-            </h3>
-          </div>
-          <div className="card-content">
-            <div className="slider-header">
-              <span className="slider-value">Current: {temperature}°C</span>
-              <span className="slider-range">Range: 18-28°C</span>
-            </div>
-            <div className="slider-container">
-              <input
-                type="range"
-                min="18"
-                max="28"
-                value={temperature}
-                onChange={(e) => handleControlChange("temperature", Number.parseInt(e.target.value), "slider")}
-                className="range-slider"
-              />
-            </div>
-            <div className="temperature-presets">
-              <button
-                className="preset-btn cool"
-                onClick={() => handleControlChange("temperature", 20, "slider")}
-              >
-                Cool (20°C)
-              </button>
-              <button
-                className="preset-btn comfort"
-                onClick={() => handleControlChange("temperature", 23, "slider")}
-              >
-                Comfort (23°C)
-              </button>
-              <button
-                className="preset-btn warm"
-                onClick={() => handleControlChange("temperature", 26, "slider")}
-              >
-                Warm (26°C)
-              </button>
-            </div>
-          </div>
-        </div>
+        
 
-        <div className="card">
-          <div className="card-header">
-            <h3 className="card-title">
-              <Wind className="card-icon" /> Fan Control
-            </h3>
-          </div>
-          <div className="card-content">
-            <div className="slider-header">
-              <span className="slider-value">Speed: {fanSpeed}%</span>
-              <span className="slider-range">Range: 0-100%</span>
-            </div>
-            <div className="slider-container">
-              <input
-                type="range"
-                min="0"
-                max="100"
-                step="5"
-                value={fanSpeed}
-                onChange={(e) => handleControlChange("fanSpeed", Number.parseInt(e.target.value), "slider")}
-                className="range-slider"
-              />
-            </div>
-            <div className="fan-presets">
-              <button
-                className="preset-btn"
-                onClick={() => handleControlChange("fanSpeed", 0, "slider")}
-              >
-                Off
-              </button>
-              <button
-                className="preset-btn"
-                onClick={() => handleControlChange("fanSpeed", 25, "slider")}
-              >
-                Low
-              </button>
-              <button
-                className="preset-btn"
-                onClick={() => handleControlChange("fanSpeed", 50, "slider")}
-              >
-                Medium
-              </button>
-              <button
-                className="preset-btn"
-                onClick={() => handleControlChange("fanSpeed", 100, "slider")}
-              >
-                High
-              </button>
-            </div>
-          </div>
-        </div>
-
-
+        
       </div>
 
       {/* Camera Feed Section */}
@@ -622,10 +571,7 @@ export function Controllers() {
                   </span>
                 ) : (
                   recordedChunks.length > 0 && (
-                    <button
-                      className="btn btn-sm btn-success"
-                      onClick={saveRecording}
-                    >
+                    <button className="btn btn-sm btn-success" onClick={saveRecording}>
                       <Save size={14} /> Save Recording
                     </button>
                   )
@@ -638,53 +584,54 @@ export function Controllers() {
           {surveillance ? (
             <>
               <div className="camera-feed">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                />
+                <video ref={videoRef} autoPlay playsInline muted style={{ display: streamActive ? "block" : "none" }} />
+
+                {/* Show appropriate placeholder based on camera state */}
                 {!streamActive && (
                   <div className="camera-placeholder">
-                    <Camera className="camera-icon" />
-                    <p>Connecting to camera...</p>
+                    {cameraError ? (
+                      <>
+                        <AlertTriangle className="camera-icon error" />
+                        <p className="error-message">{cameraError}</p>
+                        <button className="btn btn-sm btn-primary mt-2" onClick={retryCamera}>
+                          <RotateCw size={14} /> Retry Camera
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="camera-icon" />
+                        <p>Connecting to camera...</p>
+                      </>
+                    )}
                   </div>
                 )}
-
-                {/* Camera settings overlay */}
-
               </div>
               <div className="camera-actions">
                 {isRecording ? (
-                  <button
-                    className="btn btn-danger"
-                    onClick={stopRecording}
-                  >
+                  <button className="btn btn-danger" onClick={stopRecording}>
                     <Square size={16} className="btn-icon" /> Stop Recording
                   </button>
                 ) : (
-                  <button
-                    className="btn btn-secondary"
-                    onClick={startRecording}
-                    disabled={!streamActive}
-                  >
+                  <button className="btn btn-secondary" onClick={startRecording} disabled={!streamActive}>
                     <Video size={16} className="btn-icon" /> Record Video
                   </button>
                 )}
-                <button
-                  className="btn btn-primary"
-                  onClick={viewFullScreen}
-                  disabled={!streamActive}
-                >
+                <button className="btn btn-primary" onClick={viewFullScreen} disabled={!streamActive}>
                   <Eye size={16} className="btn-icon" /> View Full Screen
                 </button>
               </div>
             </>
           ) : (
             <>
-              <div className="camera-placeholder">
+              <div className="camera-actions">
                 <Camera className="camera-icon" />
                 <p>Camera is turned off</p>
+                <button
+                  className="btn btn-sm btn-primary mt-2"
+                  onClick={() => handleControlChange("surveillance", true)}
+                >
+                  <Power size={14} /> Turn On Camera
+                </button>
               </div>
               <div className="camera-actions">
                 <button className="btn btn-secondary" disabled>
@@ -698,8 +645,6 @@ export function Controllers() {
           )}
         </div>
       </div>
-
-
 
       {/* System Logs */}
       <div className="card logs-card">
