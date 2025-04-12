@@ -4,6 +4,7 @@ import {
   Droplet, Bell, AlertTriangle, Layers, BarChart2, Sliders, Save, RotateCw, Eye, 
   Check, X , Plus
 } from "lucide-react"
+import axios from "axios"
 
 export  function Controllers() {
   // Basic system controls
@@ -270,7 +271,7 @@ export  function Controllers() {
   }
   
   // Update controller and add log entry
-  const handleControlChange = (controlName, value, controlType = "toggle") => {
+  const handleControlChange = async (controlName, value, controlType = "toggle") => {
     // Update the control state based on the controlName
     switch(controlName) {
       case "grouper":
@@ -287,6 +288,11 @@ export  function Controllers() {
         break;
       case "lights":
         setLightsOn(value);
+        try {
+          const response = await axios.post("http://localhost:3000/api/lamp/toggle");
+        } catch (error) {
+          console.error("Error updating lights:", error);
+        }
         break;
       case "nightMode":
         setNightMode(value);
@@ -297,9 +303,7 @@ export  function Controllers() {
       case "fanSpeed":
         setFanSpeed(value);
         break;
-      case "humidity":
-        setHumidity(value);
-        break;
+      
       case "notifications":
         setNotifications(value);
         break;
@@ -586,49 +590,7 @@ export  function Controllers() {
           </div>
         </div>
         
-        <div className="card">
-          <div className="card-header">
-            <h3 className="card-title">
-              <Droplet className="card-icon" /> Humidity Control
-            </h3>
-          </div>
-          <div className="card-content">
-            <div className="slider-header">
-              <span className="slider-value">Level: {humidity}%</span>
-              <span className="slider-range">Range: 30-70%</span>
-            </div>
-            <div className="slider-container">
-              <input
-                type="range"
-                min="30"
-                max="70"
-                value={humidity}
-                onChange={(e) => handleControlChange("humidity", Number.parseInt(e.target.value), "slider")}
-                className="range-slider"
-              />
-            </div>
-            <div className="humidity-presets">
-              <button 
-                className="preset-btn"
-                onClick={() => handleControlChange("humidity", 35, "slider")}
-              >
-                Dry (35%)
-              </button>
-              <button 
-                className="preset-btn"
-                onClick={() => handleControlChange("humidity", 45, "slider")}
-              >
-                Normal (45%)
-              </button>
-              <button 
-                className="preset-btn"
-                onClick={() => handleControlChange("humidity", 60, "slider")}
-              >
-                Humid (60%)
-              </button>
-            </div>
-          </div>
-        </div>
+       
       </div>
       
       {/* Camera Feed Section */}
@@ -685,31 +647,7 @@ export  function Controllers() {
                 )}
                 
                 {/* Camera settings overlay */}
-                <div className="camera-settings">
-                  <div className="setting-item">
-                    <span className="setting-label">Notifications:</span>
-                    <label className="switch switch-small">
-                      <input 
-                        type="checkbox" 
-                        checked={notifications} 
-                        onChange={() => handleControlChange("notifications", !notifications)} 
-                      />
-                      <span className="slider round"></span>
-                    </label>
-                  </div>
-                  
-                  <div className="setting-item">
-                    <span className="setting-label">Motion Detection:</span>
-                    <label className="switch switch-small">
-                      <input 
-                        type="checkbox" 
-                        checked={motionDetection} 
-                        onChange={() => handleControlChange("motionDetection", !motionDetection)} 
-                      />
-                      <span className="slider round"></span>
-                    </label>
-                  </div>
-                </div>
+                
               </div>
               <div className="camera-actions">
                 {isRecording ? (

@@ -12,7 +12,7 @@ DHT dht(DHTPIN, DHTTYPE);
 #define MQ2_PIN 34     // Analog pin for MQ2
 #define FLAME_PIN 14   // Digital pin for Flame sensor
 #define RELAY_PIN 26   // Relay control pin
-#define BUZZER_PIN 12   // Buzzer pin
+#define BUZZER_PIN 4   // Buzzer pin
 #define LAMP_PIN 21    // Lamp control pin
 
 // WiFi credentials
