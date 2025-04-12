@@ -1,9 +1,9 @@
+import { User } from "lucide-react"
 import { Home, Calendar, Thermometer, Camera, Sliders, AlertTriangle, Sun, Moon, Bell, Server } from "react-feather"
 
 export function Sidebar({ currentPage, setCurrentPage, darkMode, toggleDarkMode }) {
   const menuItems = [
     { id: "home", label: "Home", icon: Home },
-    { id: "cooling", label: "Cooling", icon: Thermometer },
     { id: "schedule", label: "Schedule", icon: Calendar },
     { id: "sensors", label: "Sensors", icon: Camera },
     { id: "hardware", label: "Hardware", icon: Server },
@@ -15,15 +15,15 @@ export function Sidebar({ currentPage, setCurrentPage, darkMode, toggleDarkMode 
   return (
     <div className="sidebar">
       <div className="sidebar-header">
-        <h1 className="sidebar-title">ATM Dashboard</h1>
+        <h1 className="sidebar-title">Mobilis ATM</h1>
       </div>
 
       <div className="profile-section">
         <div className="avatar">
-          <img src="/placeholder.svg" alt="Profile" />
+          <User  />
         </div>
         <div className="profile-info">
-          <p className="profile-name">John Doe</p>
+          <p className="profile-name">Admin Mobilis</p>
           <p className="profile-role">Administrator</p>
         </div>
       </div>
